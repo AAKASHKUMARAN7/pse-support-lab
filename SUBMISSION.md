@@ -77,7 +77,8 @@
   - Portal proxy: `"status":504,"durationMs":60637,"error":"TimeoutError: The operation was aborted due to timeout"` ×3 — same file
   - DB, per-invoice outcome matrix and the ASP cross-check — [evidence/07-oasis-db-state.txt](evidence/07-oasis-db-state.txt)
   - Metrics: `invoicely_participant_lookup_duration_seconds_sum 693.76 / _count 3049` → 0.228 s per lookup; import duration histogram has 4 imports above 120 s (all Oasis)
-  - Grafana panels "Import processing time p50/p95" and "Participant lookups" — [evidence/screenshots/](evidence/screenshots/)
+  - Grafana "Import processing time p50/p95" — [g6-import-processing-time.png](evidence/screenshots/g6-import-processing-time.png) (p95 far above 60 s; exact times are in the logs because the histogram jumps from a 120 s to a 300 s bucket)
+  - Portal batch page for upload #1: processing time **156.8 s**, Accepted 3 / Rejected 5 — [p1-oasis-batches.png](evidence/screenshots/p1-oasis-batches.png)
 - **Confidence and open questions:** High on both mechanisms (reproduced end to end). Open: (1) he says the first two attempts "sat on Processing" for "a good few minutes". In my reproduction the error appears at 60 s, so he may have left the tab before the error showed, or the morning's load made it slower. Worth asking him, but it doesn't change the fix. (2) The exact split of which upload sent which invoice in production depends on his real timing. The reply uses the production data, not my lab run. (3) If a timed-out import is ever killed mid-way (Incident 2), its invoices stay `Parsed` and would block those numbers forever. I've asked engineering to check for that.
 
 ### Customer resolution reply OR escalation note
@@ -220,7 +221,7 @@ Upload page spins ~60 s then shows "504 Gateway Timeout. Please try again." Re-u
 
 | Time (exercise clock) | What I checked / did | What I found |
 |---|---|---|
-| 09:42 | Alert received. Opened Grafana "Invoicely Lite – Overview" ([screenshots](evidence/screenshots/)) | "API up" flaps 1 → 0 → 1; "API process restarts (1h)" > 0; "Container memory (working set)": the **api** line climbs steadily to the **128 MiB limit, then drops to ~8 MiB** at each restart (sawtooth). Nothing else restarts. |
+| 09:42 | Alert received. Opened Grafana "Invoicely Lite – Overview" ([g1](evidence/screenshots/g1-overview-row.png), [g2](evidence/screenshots/g2-container-memory.png), [g4](evidence/screenshots/g4-container-restarts.png)) | "API up" flaps 1 → 0 → 1; "API process restarts (1h)" > 0; "Container memory (working set)": the **api** line climbs steadily to the **128 MiB limit, then drops to ~8 MiB** at each restart (sawtooth). Nothing else restarts. |
 | 09:45 | Posted in the on-call channel that I'd picked it up | — |
 | 09:47 | `docker events` / `docker inspect` on the api container ([events](evidence/08-api-docker-events-readable.txt)) | `oom` → `die exitCode=137` → `start`, **twice** in my reproduction (04:43:59Z and 04:50:39Z). Exit 137 = killed by the kernel for exceeding its memory limit. `MemoryLimit=134217728` (128 MiB) and `MemorySwap` equal to it, i.e. no swap ([docker-compose.yml:60-61](docker-compose.yml#L60-L61)). `RestartCount=2`. |
 | 09:48 | API log around the kill ([logs](evidence/08-incident2-logs.txt)) | The last line before each kill is in the middle of normal work (`asp response …`, `import parsed … drt-morning-61.xlsx`), with **no shutdown message**, then `api starting` ~50 s later. That's a hard kill, not a crash in our code (no panic or stack trace). |
@@ -263,7 +264,8 @@ Also observed (excluded from the root cause): while my laptop (6 GB RAM in total
   - DB: 3 imports stuck Processing, 12 Parsed, 11 Validated — [evidence/09-scope-queries.txt](evidence/09-scope-queries.txt)
   - Workaround and its limits (13 recovered; Parsed → 409 and AE-BR-09 'Parsed') — [evidence/10-incident2-workaround.txt](evidence/10-incident2-workaround.txt)
   - Alert behaviour — [evidence/12-grafana-alert-state.txt](evidence/12-grafana-alert-state.txt)
-  - Grafana panels "Container memory (working set)", "API Go heap in use", "API process restarts", "Container restarts" — [evidence/screenshots/](evidence/screenshots/)
+  - Grafana: [g2-container-memory.png](evidence/screenshots/g2-container-memory.png) (api memory sawtooth), [g3-api-heap.png](evidence/screenshots/g3-api-heap.png) (heap only ever grows until the kill), [g4-container-restarts.png](evidence/screenshots/g4-container-restarts.png) (only api restarts), [g1-overview-row.png](evidence/screenshots/g1-overview-row.png) ("API process restarts (1h)" shows **11** while Docker counted **2**, and "5xx responses" shows **0** during the 502s)
+  - Side effect visible in the portal: the Ghaf batch page says *"Source preview is no longer available for this upload"*, because the in-memory file copy was wiped by the restart — [p4-ghaf-batch.png](evidence/screenshots/p4-ghaf-batch.png)
 - **Confidence and open questions:** High that the restarts are OOM kills caused by the unbounded cache (memory pattern, exit code 137, and code all agree; nothing else in the API holds memory across requests). Not proven: I didn't rebuild with eviction to show memory going flat. That's engineering's verification. Open: (1) the exact production count of stranded invoices needs the same queries run in production; (2) whether 128 MiB was chosen deliberately (raising it is a quick stopgap but only delays the next kill).
 
 ### Customer resolution reply OR escalation note
@@ -427,7 +429,7 @@ Also observed (excluded from the root cause): while my laptop (6 GB RAM in total
 
   - ASP log: `"msg":"document rejected" … "invoice_number":"ANF-2611-0042","rule":"BR-CO-15" … "Got 15022.42, expected 15022.43."` (same file).
   - Worked example, ANF-2611-0042: lines 9115.625 → 9115.63, 4748.645 → 4748.65, 442.80. Portal IBT-112 = round2((9115.625 + 4748.645 + 442.80) × 1.05) = round2(15022.4235) = **15022.42**. Correct IBT-112 = 14307.08 + 715.35 = **15022.43**.
-  - Grafana: "Validation failures by rule" stays empty for these (it's not a portal rule); "ASP responses by HTTP status" shows the 422s; "Submissions by outcome" shows `rejected`. Screenshots in [evidence/screenshots/](evidence/screenshots/).
+  - Grafana: "Validation failures by rule" stays empty for these (it's not a portal rule); "ASP responses by HTTP status" shows the 422s; "Submissions by outcome" shows `rejected` — [g5-asp-responses.png](evidence/screenshots/g5-asp-responses.png) (yellow 422 bars). The invoice page for ANF-2611-0042 with the totals and the raw ASP response — [p3-alnoor-invoice-0042.png](evidence/screenshots/p3-alnoor-invoice-0042.png).
 - **Confidence and open questions:** High. Predicted by hand before reproducing, and confirmed to the fil on all 6 invoices. Not done: I didn't rebuild the API with a patched line 171 to prove the fix end to end; that's for engineering. Open: how many other sellers have been hit (needs a query across all sellers for `rejected_by='asp'` with BR-CO-15; I've asked engineering to run it in production).
 
 ### Customer resolution reply OR escalation note
@@ -592,7 +594,8 @@ None that I'd recommend. Technically the totals could be nudged by changing line
   - Resend test: 40 × Rejected AE-BR-09
   - Metrics: `invoicely_asp_responses_total{code="429"} 26` vs `invoicely_submissions_total` without a throttled outcome; ASP side `asp_documents_total{outcome="throttled"} 26`
   - Scope across all sellers after the morning replay: [evidence/09-scope-queries.txt](evidence/09-scope-queries.txt)
-  - Grafana "ASP responses by HTTP status" (429 bars) vs "Submissions by outcome" (no matching line): [evidence/screenshots/](evidence/screenshots/)
+  - Grafana "ASP responses by HTTP status": blue **HTTP 429** bars — [g5-asp-responses.png](evidence/screenshots/g5-asp-responses.png). My first Sahara upload's 26 × 429 don't show as a bar at all: most likely because the 429 counter series was brand new and `increase()` ignores a series' first sample. The first burst of throttling is invisible on the dashboard.
+  - Portal batch page: **Submitted 26 / Accepted 14** — [p2-sahara-batch.png](evidence/screenshots/p2-sahara-batch.png)
 - **Confidence and open questions:** High. Reproduced with the customer's file, cause visible in code, logs and the ASP's own records. Open: in production, I'd confirm with the real ASP that it really has no record of the 26 (in the lab, the mock's document list is in memory and is cleared if the mock restarts). I'd also ask whether the ASP can raise Sahara's fair-use limit as a short-term measure.
 
 ### Customer resolution reply OR escalation note
@@ -735,7 +738,7 @@ Note: in the lab I uploaded her corrected file myself to prove the fix. On a rea
 - **What happened:** The issue and due dates in her file are typed as text in day/month/year form (`13/11/2026`). The portal only accepts `YYYY-MM-DD` text or real Excel date cells, so every invoice was rejected at upload with AE-BR-04 and none were sent.
 - **Where** (component, `file:line`): api, template parsing and validation. [sheet.go:171-186](services/api/internal/sheet/sheet.go#L171-L186) (`ParseDate` accepts ISO or Excel serial only) and [validate.go:116](services/api/internal/validate/validate.go#L116) (AE-BR-04 error). Documented in [template-field-guide.md → Dates](docs/template-field-guide.md#dates).
 - **Why it happens:** It's a deliberate rule. `05/11/2026` means 5 November in the UAE and 11 May in the US, and the portal must not guess the date on a tax invoice. Her Excel stored what she typed as text because it wasn't entered as a date (format "General").
-- **Evidence:** [evidence/05-ghaf-reproduce.txt](evidence/05-ghaf-reproduce.txt) (DB query: 4 × Rejected, AE-BR-04 only; corrected file: 4 × Accepted with ASP references; real-date-cell test: 4 × Accepted); [evidence/00-sample-file-inspection.txt](evidence/00-sample-file-inspection.txt) (cell types).
+- **Evidence:** [evidence/05-ghaf-reproduce.txt](evidence/05-ghaf-reproduce.txt) (DB query: 4 × Rejected, AE-BR-04 only; corrected file: 4 × Accepted with ASP references; real-date-cell test: 4 × Accepted); [evidence/00-sample-file-inspection.txt](evidence/00-sample-file-inspection.txt) (cell types); portal batch page with 4 × Rejected and the dates as typed — [p4-ghaf-batch.png](evidence/screenshots/p4-ghaf-batch.png).
 - **Confidence and open questions:** High. Reproduced with her exact file, and fixed by changing only the date cells. One open question: did she use the official template's `Instructions` sheet? If she started from a blank sheet, that may explain why she didn't know about the date format.
 
 ### Customer resolution reply OR escalation note

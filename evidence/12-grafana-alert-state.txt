@@ -2,3 +2,10 @@ Invoicely API restarted | firing | ok | lastEval 2026-11-14T05:04:40
    alert Alerting 2026-11-14T04:27:40 value 1e+00
 Invoicely API 5xx responses | inactive | ok | lastEval 2026-11-14T05:05:10
    alert Normal 2026-11-14T04:26:40 value 
+
+### Re-checked at 2026-11-14T06:41:46Z (after Grafana itself was restarted at 06:28Z)
+Invoicely API restarted | firing | [('Alerting', 'activeAt 2026-11-14T06:22:10', 'value 1e+00')]
+Invoicely API 5xx responses | inactive | [('Normal', 'activeAt 2026-11-14T06:37:40', 'value ')]
+docker: api RestartCount=2, last real start 2026-11-14T04:50:41.871996996Z
+-> 'API restarted' is firing although the API has not restarted since 04:50:41Z: false positive (process_start_time_seconds drift).
+-> '5xx responses' fired ~06:33-06:37Z (now Normal again): real 503 (/healthz) and 500 (/v1/sellers) responses while my laptop was out of memory (3 failed api scrapes in that window) - environment, not the scenario.
