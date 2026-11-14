@@ -141,10 +141,12 @@
 Upload page spins ~60 s then shows "504 Gateway Timeout. Please try again." Re-uploads show "Document number already exists" — including on invoices of the FIRST upload.
 
 **Evidence:**
+- Payload excerpt: n/a. Invoice content isn't involved; all 8 invoices are valid and were each Accepted once.
+- ASP response / error code: n/a. The ASP accepted every invoice exactly once; the errors are portal-side (web 504, AE-BR-09).
 - web log: {"msg":"proxy","level":"error","method":"POST","path":"/imports","status":504,"durationMs":60637,"error":"TimeoutError: …"} ×3
 - api log: "import completed" rows=600 invoices=8 duration_ms=156813 / 147842 / 138031
 - metrics: invoicely_participant_lookup_duration_seconds sum/count = 693.76/3049 → 0.228 s per lookup; 600 lookups per Oasis file (5 distinct buyers)
-- DB: upload 1 invoices 004–008 rejected "AE-BR-09 … with status 'Parsed'" (copies from uploads 2/3 still in flight)
+- Database: upload 1 invoices 004–008 rejected "AE-BR-09 … with status 'Parsed'" (copies from uploads 2/3 still in flight)
 
 **Steps to reproduce:**
 1. In the portal (http://localhost:3000), upload samples/oasis-builders-nov-2026.xlsx as Oasis Builders.
@@ -286,11 +288,13 @@ Also observed (excluded from the root cause): while my laptop (6 GB RAM in total
 "502 Bad Gateway" on and off, mostly on upload; invoices sitting in "Validated"; some batches stuck on "Processing".
 
 **Evidence:**
+- Payload excerpt: n/a. Not invoice-specific; any upload can be the one that tips memory over the limit.
+- ASP response / error code: n/a. The ASP was healthy throughout; the failure is the api process itself (exit 137).
 - docker events: oom → die exitCode=137 → start at 04:43:59Z and 04:50:39Z (lab); RestartCount=2; Memory=MemorySwap=128 MiB
-- Prometheus: container_memory_working_set_bytes{service=api} 7.9 → 111 → (kill) 7.9 → 128 → (kill) 31 MiB; go_memstats_heap_inuse_bytes rises monotonically between kills
+- Metrics / dashboard (Prometheus, "Container memory (working set)" + "API Go heap in use", 04:22–05:06Z): container_memory_working_set_bytes{service=api} 7.9 → 111 → (kill) 7.9 → 128 → (kill) 31 MiB; go_memstats_heap_inuse_bytes rises monotonically between kills
 - api log: last lines before each kill are normal work, no shutdown/panic, then "api starting"
 - web: GET /api/* → 502 for ~25 s per restart
-- DB: SELECT status, count(*) FROM invoices WHERE status IN ('Parsed','Validated') AND updated_at < now()-'5 min' → Parsed 12, Validated 11; SELECT … FROM imports WHERE status='Processing' → 3 rows
+- Database: SELECT status, count(*) FROM invoices WHERE status IN ('Parsed','Validated') AND updated_at < now()-'5 min' → Parsed 12, Validated 11; SELECT … FROM imports WHERE status='Processing' → 3 rows
 - Retry: POST /v1/imports/{id}/retry recovered 13 (Validated/Failed → Accepted); Parsed → 409, and re-upload → AE-BR-09 "already exists … status 'Parsed'"
 
 **Steps to reproduce:**
@@ -616,10 +620,12 @@ None that I'd recommend. Technically the totals could be nudged by changing line
 Invoices show "Submitted", ASP reference empty; buyer (Emirates Palm Hospital, 0235:…) received only 14 of 40.
 
 **Evidence:**
+- Payload excerpt: n/a. The payloads are valid (the 14 that got through were accepted); the ASP never read the other 26.
+- ASP response / error code: HTTP 429, header Retry-After: 1, body {"error":"rate_limited","message":"Too many documents from sender 0235:1006453719. Retry after 1s."}
 - API log: {"msg":"asp response","invoice_number":"SMS-1116-011","status_code":429,…} ×26; 200 ×14
 - ASP log: {"level":"WARN","msg":"rate limit exceeded","sender":"0235:1006453719","retry_after_s":1} ×26
 - ASP GET /v1/documents?sender=0235:1006453719 → 14 SMS-1116 documents, all accepted; the 26 are absent
-- DB: SELECT status, asp_message_id<>'' , count(*) FROM invoices WHERE import_id='2b4feddf-…' GROUP BY 1,2 → Accepted/t/14, Submitted/f/26; invoice_events for SMS-1116-011 end at "Submitted 04:30:37"
+- Database: SELECT status, asp_message_id<>'' , count(*) FROM invoices WHERE import_id='2b4feddf-…' GROUP BY 1,2 → Accepted/t/14, Submitted/f/26; invoice_events for SMS-1116-011 end at "Submitted 04:30:37"
 - POST /v1/invoices/{id}/retry → 409 (status Submitted); POST /v1/imports/{id}/retry → requeued 0
 - Metrics: invoicely_asp_responses_total{code="429"}=26 but no matching invoicely_submissions_total outcome
 
