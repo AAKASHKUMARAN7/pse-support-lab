@@ -3,7 +3,7 @@
 - **Name:** Aakash M
 - **Date submitted:** 14 November 2026
 - **Repository link:** https://github.com/AAKASHKUMARAN7/pse-support-lab
-- **Total time spent (real time):** about 2.5 hours (14 Nov 2026, ~09:05–11:30 IST); see the time log
+- **Total time spent (real time):** about 3 hours 15 minutes (14 Nov 2026, 09:05–12:20 IST); see the time log
 
 > Replies below are drafts written on the **exercise clock** (Monday 16 November 2026, Asia/Dubai). Keep your real time in the time log at the end. Put screenshots, log excerpts and query output in `evidence/` and link to them.
 
@@ -836,6 +836,7 @@ All times are India Standard Time (UTC+5:30), 14 November 2026.
 | 14 Nov 2026 | 10:20–10:35 | Docker froze under the replay (host out of RAM); diagnosed it, stopped the replay at 175/240 |
 | 14 Nov 2026 | 10:30–10:50 | Scope queries, Incident 2 workaround test, Prometheus export, alert-state analysis; write-up of all five incidents |
 | 14 Nov 2026 | 10:50–11:30 | Evidence index, link/line-reference check, overall section, publishing to GitHub |
+| 14 Nov 2026 | 11:30–12:20 | Screenshots of Grafana and the portal (Grafana itself ran out of memory with the full dashboard and 10 s auto-refresh, so I restarted it and captured panels one at a time), captions and links, re-checked the alert state, final review and push |
 
 ### AI usage disclosure
 
