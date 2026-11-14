@@ -1,0 +1,54 @@
+### Run at 2026-11-14T05:01:33Z
+
+## 1. Invoices not in a final state, by seller and status (older than 5 minutes)
+invoicely=# SELECT s.name, v.status, (v.asp_message_id<>'') AS has_asp_ref, count(*), to_char(min(v.updated_at),'HH24:MI:SS') AS stuck_since FROM invoices v JOIN sellers s ON s.id=v.seller_id WHERE v.status IN ('Parsed','Validated','Submitted','Failed') AND v.updated_at < now()-interval '5 minutes' GROUP BY 1,2,3 ORDER BY 1,2;
+            name             |  status   | has_asp_ref | count | stuck_since 
+-----------------------------+-----------+-------------+-------+-------------
+ Desert Rose Trading LLC     | Failed    | f           |     2 | 04:54:22
+ Desert Rose Trading LLC     | Parsed    | f           |     6 | 04:43:47
+ Desert Rose Trading LLC     | Validated | f           |     5 | 04:50:11
+ Marina Bay Hospitality LLC  | Parsed    | f           |     4 | 04:50:15
+ Marina Bay Hospitality LLC  | Validated | f           |     2 | 04:50:16
+ Sahara Medical Supplies FZE | Submitted | f           |    56 | 04:30:37
+ Zayed Port Logistics LLC    | Parsed    | f           |     2 | 04:43:45
+ Zayed Port Logistics LLC    | Validated | f           |     4 | 04:43:46
+(8 rows)
+
+
+## 2. Imports that never finished (stuck in Processing)
+invoicely=# SELECT s.name, i.filename, i.status, to_char(i.created_at,'HH24:MI:SS') AS created, (SELECT jsonb_object_agg(status,n) FROM (SELECT status,count(*) n FROM invoices v WHERE v.import_id=i.id GROUP BY status) c) AS invoices FROM imports i JOIN sellers s ON s.id=i.seller_id WHERE i.status IN ('Uploaded','Processing') ORDER BY i.created_at;
+            name            |       filename       |   status   | created  |           invoices            
+----------------------------+----------------------+------------+----------+-------------------------------
+ Zayed Port Logistics LLC   | zpl-morning-60.xlsx  | Processing | 04:43:44 | {"Parsed": 2, "Validated": 4}
+ Desert Rose Trading LLC    | drt-morning-61.xlsx  | Processing | 04:43:46 | {"Parsed": 6}
+ Marina Bay Hospitality LLC | mbh-morning-158.xlsx | Processing | 04:50:13 | {"Parsed": 4, "Validated": 2}
+(3 rows)
+
+
+## 3. Marina Bay Hospitality (seller 3) this morning: imports and invoice outcomes
+invoicely=# SELECT i.status AS import_status, count(DISTINCT i.id) AS imports, count(v.id) AS invoices, count(v.id) FILTER (WHERE v.status='Accepted') AS accepted, count(v.id) FILTER (WHERE v.status IN ('Parsed','Validated')) AS stuck_parsed_or_validated, count(v.id) FILTER (WHERE v.status='Submitted' AND v.asp_message_id='') AS stuck_submitted FROM imports i LEFT JOIN invoices v ON v.import_id=i.id WHERE i.seller_id=3 AND i.created_at > now()-interval '3 hours' GROUP BY 1;
+ import_status | imports | invoices | accepted | stuck_parsed_or_validated | stuck_submitted 
+---------------+---------+----------+----------+---------------------------+-----------------
+ Completed     |      46 |      276 |      276 |                         0 |               0
+ Processing    |       1 |        6 |        0 |                         6 |               0
+(2 rows)
+
+
+## 4. ASP rejections by rule and seller
+invoicely=# SELECT s.name, v.errors->0->>'rule' AS rule, count(*) FROM invoices v JOIN sellers s ON s.id=v.seller_id WHERE v.rejected_by='asp' GROUP BY 1,2 ORDER BY 3 DESC;
+             name              |   rule   | count 
+-------------------------------+----------+-------
+ Al Noor Fuel & Lubricants LLC | BR-CO-15 |     6
+(1 row)
+
+
+## 5. Submitted without ASP reference = unhandled HTTP 429 (Incident 4), by seller
+invoicely=# SELECT s.name, count(*) FROM invoices v JOIN sellers s ON s.id=v.seller_id WHERE v.status='Submitted' AND v.asp_message_id='' GROUP BY 1 ORDER BY 2 DESC;
+            name             | count 
+-----------------------------+-------
+ Sahara Medical Supplies FZE |    56
+(1 row)
+
+
+## 6. ASP side: throttled (429) documents per sender (asp-mock log)
+     56 "sender":"0235:1006453719"

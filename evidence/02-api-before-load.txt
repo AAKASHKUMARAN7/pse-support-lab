@@ -1,0 +1,3 @@
+### API container state BEFORE load (2026-11-14T04:26:29Z)
+RestartCount=0 OOMKilled=false StartedAt=2026-11-14T04:24:30.678868014Z MemoryLimit=134217728
+invoicely-lite-api-1 mem=14.74MiB / 128MiB (11.51%)

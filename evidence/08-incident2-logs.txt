@@ -1,0 +1,19 @@
+### API process (re)starts seen in the api log
+{"time":"2026-11-14T04:24:33.990344728Z","level":"INFO","msg":"api starting","addr":":8080","asp_url":"http://asp-mock:8090"}
+{"time":"2026-11-14T04:24:36.429187096Z","level":"INFO","msg":"submission workers started","workers":4}
+{"time":"2026-11-14T04:44:40.797207272Z","level":"INFO","msg":"api starting","addr":":8080","asp_url":"http://asp-mock:8090"}
+{"time":"2026-11-14T04:44:42.64512524Z","level":"INFO","msg":"submission workers started","workers":4}
+
+### Last api log lines before the kill (around the first oom event)
+api starting at log lines: [0, 884]
+--- 6 lines before the 2nd start (no shutdown message: process was killed, not stopped):
+{"time":"2026-11-14T04:43:47.403519029Z","level":"INFO","msg":"asp response","invoice_id":"b11ebec5-d3df-4860-bd54-46e4d4c2e92d","invoice_number":"PCE-1116-H68T-059-04","status_code":200,"duration_ms":51}
+{"time":"2026-11-14T04:43:47.429275169Z","level":"INFO","msg":"asp response","invoice_id":"c8d762d9-04be-43e7-b8c8-1845ebffccfc","invoice_number":"PCE-1116-H68T-059-03","status_code":200,"duration_ms":22}
+{"time":"2026-11-14T04:43:47.449853092Z","level":"INFO","msg":"asp response","invoice_id":"e6260e44-e4e5-482f-8211-fe33030afa79","invoice_number":"PCE-1116-H68T-059-01","status_code":200,"duration_ms":42}
+{"time":"2026-11-14T04:43:47.507561762Z","level":"INFO","msg":"asp response","invoice_id":"55dca9c1-6ccd-4094-82c8-12175ba0ce75","invoice_number":"PCE-1116-H68T-059-05","status_code":200,"duration_ms":2}
+{"time":"2026-11-14T04:43:47.575460459Z","level":"INFO","msg":"import parsed","import_id":"f25dc3ca-ccd9-4d82-8c5a-140d957061e3","seller_id":1,"filename":"drt-morning-61.xlsx","rows":12,"invoices":6}
+{"time":"2026-11-14T04:43:47.591694437Z","level":"INFO","msg":"asp response","invoice_id":"154847e6-d47c-4c32-b622-4aecacf7fe52","invoice_number":"PCE-1116-H68T-059-06","status_code":200,"duration_ms":3}
+{"time":"2026-11-14T04:44:40.797207272Z","level":"INFO","msg":"api starting","addr":":8080","asp_url":"http://asp-mock:8090"}
+
+### Portal proxy errors (502 = API unreachable, 504 = timeout)
+3 x (504, 'imports', 'TimeoutError: The operation was aborted due to timeout') first at 2026-11-14T04:36:09.477Z

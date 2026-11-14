@@ -1,0 +1,31 @@
+### Web (portal proxy) log lines for the Oasis uploads - 504 after 60s
+{"ts":"2026-11-14T04:36:09.477Z","msg":"proxy","level":"error","method":"POST","path":"/imports","status":504,"durationMs":60637,"error":"TimeoutError: The operation was aborted due to timeout"}
+{"ts":"2026-11-14T04:37:16.531Z","msg":"proxy","level":"error","method":"POST","path":"/imports","status":504,"durationMs":59950,"error":"TimeoutError: The operation was aborted due to timeout"}
+{"ts":"2026-11-14T04:38:18.101Z","msg":"proxy","level":"error","method":"POST","path":"/imports","status":504,"durationMs":60275,"error":"TimeoutError: The operation was aborted due to timeout"}
+
+### API access log for the same uploads (server finished them ~150s later, nobody was listening)
+{"time":"2026-11-14T04:37:45.546246586Z","level":"INFO","msg":"import completed","import_id":"5ec45bb9-ab24-4215-a574-37b7b2659223","seller_id":2,"filename":"oasis-builders-nov-2026.xlsx","rows":600,"invoices":8,"validated":3,"rejected":5,"duration_ms":156813}
+{"time":"2026-11-14T04:38:46.501479755Z","level":"INFO","msg":"import completed","import_id":"71dbc094-60d1-4004-83d7-791b7c63e422","seller_id":2,"filename":"oasis-builders-nov-2026.xlsx","rows":600,"invoices":8,"validated":0,"rejected":8,"duration_ms":147842}
+{"time":"2026-11-14T04:39:35.802804887Z","level":"INFO","msg":"import completed","import_id":"94f1c2dd-c0bf-4488-9a9d-8d84f7735458","seller_id":2,"filename":"oasis-builders-nov-2026.xlsx","rows":600,"invoices":8,"validated":5,"rejected":3,"duration_ms":138031}
+
+### Oasis file shape: rows, invoices, distinct buyer Peppol ids
+rows: 600  invoices: 8  distinct buyer Peppol ids: 5
+rows per invoice: {'OBS-2611-001': 75, 'OBS-2611-002': 75, 'OBS-2611-003': 75, 'OBS-2611-004': 75, 'OBS-2611-005': 75, 'OBS-2611-006': 75, 'OBS-2611-007': 75, 'OBS-2611-008': 75}
+-> one participant lookup per ROW (validate.go:166 inside the per-row loop, validate.go:69): 600 lookups for only 5 distinct buyers. Avg lookup = 693.76s / 3049 = 0.228s -> 600 x 0.228s = ~137s per Oasis upload, vs the 60s portal proxy timeout
+
+### Participant lookup metric (api /metrics)
+invoicely_participant_lookup_duration_seconds_sum{result="error"} 0
+invoicely_participant_lookup_duration_seconds_count{result="error"} 0
+invoicely_participant_lookup_duration_seconds_sum{result="not_registered"} 0
+invoicely_participant_lookup_duration_seconds_count{result="not_registered"} 0
+invoicely_participant_lookup_duration_seconds_sum{result="registered"} 693.7556040599998
+invoicely_participant_lookup_duration_seconds_count{result="registered"} 3049
+
+### Import duration histogram (api /metrics)
+invoicely_import_duration_seconds_bucket{le="10"} 39
+invoicely_import_duration_seconds_bucket{le="30"} 43
+invoicely_import_duration_seconds_bucket{le="60"} 43
+invoicely_import_duration_seconds_bucket{le="120"} 43
+invoicely_import_duration_seconds_bucket{le="+Inf"} 47
+invoicely_import_duration_seconds_sum 814.07778206
+invoicely_import_duration_seconds_count 47

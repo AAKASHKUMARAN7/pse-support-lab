@@ -1,0 +1,32 @@
+### Baseline: upload clean sample samples/desert-rose-nov-2026.xlsx (seller 1)
+$ curl -F file=@samples/desert-rose-nov-2026.xlsx -F seller_id=1 http://localhost:8080/v1/imports
+HTTP 201 in 5.055894s
+invoicely=# SELECT invoice_number, status, asp_message_id <> '' AS has_asp_ref, total_excl_vat, total_vat, total_incl_vat FROM invoices WHERE import_id='a41c0dc3-eb65-4b37-bd88-3e913b35b5a6' ORDER BY invoice_number;
+ invoice_number |  status  | has_asp_ref | total_excl_vat | total_vat | total_incl_vat 
+----------------+----------+-------------+----------------+-----------+----------------
+ DRT-2611-001   | Accepted | t           |        6400.00 |    320.00 |        6720.00
+ DRT-2611-002   | Accepted | t           |        2460.00 |    123.00 |        2583.00
+ DRT-2611-003   | Accepted | t           |        7140.00 |    357.00 |        7497.00
+ DRT-2611-004   | Accepted | t           |        2159.00 |    107.95 |        2266.95
+ DRT-2611-005   | Accepted | t           |        3192.00 |    159.60 |        3351.60
+(5 rows)
+
+invoicely=# SELECT v.invoice_number, e.status, e.detail, to_char(e.created_at,'HH24:MI:SS.MS') AS at FROM invoice_events e JOIN invoices v ON v.id=e.invoice_id WHERE v.import_id='a41c0dc3-eb65-4b37-bd88-3e913b35b5a6' AND v.invoice_number=(SELECT min(invoice_number) FROM invoices WHERE import_id='a41c0dc3-eb65-4b37-bd88-3e913b35b5a6') ORDER BY e.id;
+ invoice_number |  status   |                              detail                               |      at      
+----------------+-----------+-------------------------------------------------------------------+--------------
+ DRT-2611-001   | Parsed    | Created from uploaded file                                        | 04:25:21.725
+ DRT-2611-001   | Validated | Passed portal validation                                          | 04:25:22.253
+ DRT-2611-001   | Submitted | Sent to ASP                                                       | 04:25:25.130
+ DRT-2611-001   | Accepted  | Accepted by ASP (message id c3ab1cb6-f404-407e-817f-137954434dd1) | 04:25:25.538
+(4 rows)
+
+
+### API log lines for the baseline import
+{"time":"2026-11-14T04:25:21.591185845Z","level":"INFO","msg":"import received","import_id":"a41c0dc3-eb65-4b37-bd88-3e913b35b5a6","seller_id":1,"filename":"desert-rose-nov-2026.xlsx","bytes":90197}
+{"time":"2026-11-14T04:25:21.792236099Z","level":"INFO","msg":"import parsed","import_id":"a41c0dc3-eb65-4b37-bd88-3e913b35b5a6","seller_id":1,"filename":"desert-rose-nov-2026.xlsx","rows":12,"invoices":5}
+{"time":"2026-11-14T04:25:24.950027586Z","level":"INFO","msg":"import completed","import_id":"a41c0dc3-eb65-4b37-bd88-3e913b35b5a6","seller_id":1,"filename":"desert-rose-nov-2026.xlsx","rows":12,"invoices":5,"validated":5,"rejected":0,"duration_ms":3368}
+{"time":"2026-11-14T04:25:25.534830774Z","level":"INFO","msg":"asp response","invoice_id":"5c46aa02-3b1a-4e37-82d2-d5f71c2d9916","invoice_number":"DRT-2611-001","status_code":200,"duration_ms":382}
+{"time":"2026-11-14T04:25:25.900572448Z","level":"INFO","msg":"asp response","invoice_id":"54992b90-d5b6-4d8b-ab59-3ee339db7aa7","invoice_number":"DRT-2611-005","status_code":200,"duration_ms":26}
+{"time":"2026-11-14T04:25:26.28254473Z","level":"INFO","msg":"asp response","invoice_id":"204856fe-b927-4f18-85aa-483c47134591","invoice_number":"DRT-2611-003","status_code":200,"duration_ms":13}
+{"time":"2026-11-14T04:25:26.382819863Z","level":"INFO","msg":"asp response","invoice_id":"27080969-9394-4dc7-ad6a-8ca558aa04f7","invoice_number":"DRT-2611-004","status_code":200,"duration_ms":5}
+{"time":"2026-11-14T04:25:26.403325115Z","level":"INFO","msg":"asp response","invoice_id":"643ff983-8150-4ee2-ad14-caab5eac5a81","invoice_number":"DRT-2611-002","status_code":200,"duration_ms":3}

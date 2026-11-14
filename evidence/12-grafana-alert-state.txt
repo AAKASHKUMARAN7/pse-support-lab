@@ -1,0 +1,4 @@
+Invoicely API restarted | firing | ok | lastEval 2026-11-14T05:04:40
+   alert Alerting 2026-11-14T04:27:40 value 1e+00
+Invoicely API 5xx responses | inactive | ok | lastEval 2026-11-14T05:05:10
+   alert Normal 2026-11-14T04:26:40 value 

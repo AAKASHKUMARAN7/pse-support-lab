@@ -1,0 +1,80 @@
+### Incident 4 - reproduce: POST samples/sahara-medical-batch-1116.xlsx to /v1/imports (seller 5), as the ERP connector does, at 04:30:16Z
+HTTP 201 in 20.775144s
+import 2b4feddf-a863-40e0-ab54-f03da5785cdc status Completed invoices 40 counts at 201 time {'Accepted': 0, 'Failed': 0, 'Parsed': 0, 'Rejected': 0, 'Submitted': 2, 'Validated': 38}
+### State ~30s after the 201 (04:30:52Z)
+invoicely=# SELECT status, (asp_message_id <> '') AS has_asp_reference, count(*) FROM invoices WHERE import_id='2b4feddf-a863-40e0-ab54-f03da5785cdc' GROUP BY 1,2 ORDER BY 1;
+  status   | has_asp_reference | count 
+-----------+-------------------+-------
+ Accepted  | t                 |    14
+ Submitted | f                 |    26
+(2 rows)
+
+invoicely=# SELECT invoice_number, status, asp_message_id, asp_response IS NULL AS no_asp_response, to_char(updated_at,'HH24:MI:SS') AS last_change FROM invoices WHERE import_id='2b4feddf-a863-40e0-ab54-f03da5785cdc' ORDER BY invoice_number LIMIT 12;
+ invoice_number |  status   |            asp_message_id            | no_asp_response | last_change 
+----------------+-----------+--------------------------------------+-----------------+-------------
+ SMS-1116-001   | Accepted  | 56836777-385b-4adf-a3be-c2837290bbe1 | f               | 04:30:37
+ SMS-1116-002   | Accepted  | 60370bda-a991-4b8a-bb11-ba0cbb31b2eb | f               | 04:30:36
+ SMS-1116-003   | Accepted  | a39345ae-0102-4221-94de-46d53ad2ae48 | f               | 04:30:36
+ SMS-1116-004   | Accepted  | d0015ea1-d269-4ea3-82d0-39a14d4892df | f               | 04:30:36
+ SMS-1116-005   | Accepted  | c5fef5fe-194e-4e1f-afa7-02f8a8f7c2ac | f               | 04:30:37
+ SMS-1116-006   | Accepted  | faf1e75b-ed18-4db2-b8d4-79655366ccf5 | f               | 04:30:37
+ SMS-1116-007   | Accepted  | 2439d35f-1991-4797-b7ea-889aced23303 | f               | 04:30:37
+ SMS-1116-008   | Accepted  | 461b183c-3d8b-4a60-8cdf-37c29353dc78 | f               | 04:30:37
+ SMS-1116-009   | Accepted  | 2ae04d5b-3ca1-468f-ad4a-a8dcd57c2704 | f               | 04:30:37
+ SMS-1116-010   | Accepted  | bd5b5797-afc0-42f5-9337-f1f1f0396cf8 | f               | 04:30:37
+ SMS-1116-011   | Submitted |                                      | t               | 04:30:37
+ SMS-1116-012   | Submitted |                                      | t               | 04:30:37
+(12 rows)
+
+### API log: ASP response codes for this batch
+asp response status codes for SMS-1116-*: {200: 14, 429: 26}
+### ASP log (asp-mock): throttling of sender 0235:1006453719
+rate limit exceeded lines: 26
+{"time":"2026-11-14T04:30:37.530205949Z","level":"WARN","msg":"rate limit exceeded","sender":"0235:1006453719","retry_after_s":1}
+{"time":"2026-11-14T04:30:37.607911964Z","level":"WARN","msg":"rate limit exceeded","sender":"0235:1006453719","retry_after_s":1}
+{"time":"2026-11-14T04:30:37.791970144Z","level":"WARN","msg":"rate limit exceeded","sender":"0235:1006453719","retry_after_s":1}
+### What the ASP actually holds for sender 0235:1006453719 (GET /v1/documents?sender=...)
+documents received for SMS-1116-*: 14 {'accepted': 14}
+numbers received: ['SMS-1116-001', 'SMS-1116-002', 'SMS-1116-003', 'SMS-1116-004', 'SMS-1116-005', 'SMS-1116-006', 'SMS-1116-007', 'SMS-1116-008', 'SMS-1116-009', 'SMS-1116-010', 'SMS-1116-015', 'SMS-1116-020', 'SMS-1116-026', 'SMS-1116-033']
+
+### Status history of a stuck invoice SMS-1116-011 (37ff4dae-673b-4ceb-ae4f-af596973fddc)
+invoicely=# SELECT status, detail, to_char(created_at,'HH24:MI:SS.MS') AS at FROM invoice_events WHERE invoice_id='37ff4dae-673b-4ceb-ae4f-af596973fddc' ORDER BY id;
+  status   |           detail           |      at      
+-----------+----------------------------+--------------
+ Parsed    | Created from uploaded file | 04:30:17.852
+ Validated | Passed portal validation   | 04:30:21.885
+ Submitted | Sent to ASP                | 04:30:37.446
+(3 rows)
+
+### Try the documented workaround: POST /v1/invoices/37ff4dae-673b-4ceb-ae4f-af596973fddc/retry
+{"error":"only invoices in status Validated or Failed can be retried (current status: Submitted)"}
+  -> HTTP 409
+### Try batch retry: POST /v1/imports/2b4feddf-a863-40e0-ab54-f03da5785cdc/retry
+{"requeued":0}
+  -> HTTP 200
+### Metrics: ASP responses by code vs submission outcomes (API /metrics)
+invoicely_asp_responses_total{code="200"} 26
+invoicely_asp_responses_total{code="422"} 3
+invoicely_asp_responses_total{code="429"} 26
+invoicely_submissions_total{outcome="accepted"} 26
+invoicely_submissions_total{outcome="failed"} 0
+invoicely_submissions_total{outcome="rejected"} 3
+asp_documents_total{outcome="accepted"} 26
+asp_documents_total{outcome="rejected"} 3
+asp_documents_total{outcome="throttled"} 26
+### What happens if the connector resends the same batch? (04:32:32Z)
+HTTP 201 in 18.131599s
+second import 2eb82764-50f6-440e-8a36-c6b615b34a83
+invoicely=# SELECT status, errors->0->>'rule' AS rule, count(*) FROM invoices WHERE import_id='2eb82764-50f6-440e-8a36-c6b615b34a83' GROUP BY 1,2;
+  status  |   rule   | count 
+----------+----------+-------
+ Rejected | AE-BR-09 |    40
+(1 row)
+
+invoicely=# SELECT invoice_number, errors->0->>'message' AS message FROM invoices WHERE import_id='2eb82764-50f6-440e-8a36-c6b615b34a83' AND invoice_number IN ('SMS-1116-001','SMS-1116-011') ORDER BY 1;
+ invoice_number |                                        message                                         
+----------------+----------------------------------------------------------------------------------------
+ SMS-1116-001   | Document number 'SMS-1116-001' already exists for this seller with status 'Accepted'.
+ SMS-1116-011   | Document number 'SMS-1116-011' already exists for this seller with status 'Submitted'.
+(2 rows)
+

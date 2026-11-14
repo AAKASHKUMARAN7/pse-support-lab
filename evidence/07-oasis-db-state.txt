@@ -1,0 +1,49 @@
+### Oasis: the three portal uploads, as seen in the database after all finished (04:41:31Z)
+invoicely=# SELECT row_number() OVER (ORDER BY created_at) AS upload_no, id, status, invoice_count, round(duration_ms/1000.0,1) AS server_seconds, to_char(created_at,'HH24:MI:SS') AS created, to_char(completed_at,'HH24:MI:SS') AS completed FROM imports WHERE seller_id=2 AND created_at > now()-interval '1 hour' ORDER BY created_at;
+ upload_no |                  id                  |  status   | invoice_count | server_seconds | created  | completed 
+-----------+--------------------------------------+-----------+---------------+----------------+----------+-----------
+         1 | 5ec45bb9-ab24-4215-a574-37b7b2659223 | Completed |             8 |          156.8 | 04:35:08 | 04:37:45
+         2 | 71dbc094-60d1-4004-83d7-791b7c63e422 | Completed |             8 |          147.8 | 04:36:18 | 04:38:46
+         3 | 94f1c2dd-c0bf-4488-9a9d-8d84f7735458 | Completed |             8 |          138.0 | 04:37:18 | 04:39:35
+         4 | 641b36c9-0f4b-4965-97a5-4dd4cc3979f0 | Completed |             8 |          131.9 | 04:39:03 | 04:41:14
+(4 rows)
+
+### Per invoice number: which upload got it through, and why the others were rejected
+invoicely=# WITH up AS (SELECT id, row_number() OVER (ORDER BY created_at) AS n FROM imports WHERE seller_id=2 AND created_at > now()-interval '1 hour') SELECT v.invoice_number, string_agg('#'||up.n||' '||v.status || CASE WHEN v.status='Rejected' THEN ' ('||(v.errors->0->>'rule')||' vs '||coalesce(substring(v.errors->0->>'message' from 'status ''([A-Za-z]+)'''),'?')||')' ELSE '' END, '  |  ' ORDER BY up.n) AS outcome_per_upload, bool_or(v.status='Accepted') AS delivered, count(*) FILTER (WHERE v.status='Accepted') AS times_accepted FROM invoices v JOIN up ON up.id=v.import_id GROUP BY v.invoice_number ORDER BY v.invoice_number;
+  invoice_number   |                                     outcome_per_upload                                      | delivered | times_accepted 
+-------------------+---------------------------------------------------------------------------------------------+-----------+----------------
+ OBS-2611-001      | #1 Accepted  |  #2 Rejected (AE-BR-09 vs Validated)  |  #3 Rejected (AE-BR-09 vs Validated) | t         |              1
+ OBS-2611-001-H68T | #4 Accepted                                                                                 | t         |              1
+ OBS-2611-002      | #1 Accepted  |  #2 Rejected (AE-BR-09 vs Validated)  |  #3 Rejected (AE-BR-09 vs Accepted)  | t         |              1
+ OBS-2611-002-H68T | #4 Accepted                                                                                 | t         |              1
+ OBS-2611-003      | #1 Accepted  |  #2 Rejected (AE-BR-09 vs Validated)  |  #3 Rejected (AE-BR-09 vs Accepted)  | t         |              1
+ OBS-2611-003-H68T | #4 Accepted                                                                                 | t         |              1
+ OBS-2611-004      | #1 Rejected (AE-BR-09 vs Parsed)  |  #2 Rejected (AE-BR-09 vs Parsed)  |  #3 Accepted       | t         |              1
+ OBS-2611-004-H68T | #4 Accepted                                                                                 | t         |              1
+ OBS-2611-005      | #1 Rejected (AE-BR-09 vs Parsed)  |  #2 Rejected (AE-BR-09 vs Parsed)  |  #3 Accepted       | t         |              1
+ OBS-2611-005-H68T | #4 Accepted                                                                                 | t         |              1
+ OBS-2611-006      | #1 Rejected (AE-BR-09 vs Parsed)  |  #2 Rejected (AE-BR-09 vs Parsed)  |  #3 Accepted       | t         |              1
+ OBS-2611-006-H68T | #4 Accepted                                                                                 | t         |              1
+ OBS-2611-007      | #1 Rejected (AE-BR-09 vs Parsed)  |  #2 Rejected (AE-BR-09 vs Parsed)  |  #3 Accepted       | t         |              1
+ OBS-2611-007-H68T | #4 Accepted                                                                                 | t         |              1
+ OBS-2611-008      | #1 Rejected (AE-BR-09 vs Parsed)  |  #2 Rejected (AE-BR-09 vs Parsed)  |  #3 Accepted       | t         |              1
+ OBS-2611-008-H68T | #4 Accepted                                                                                 | t         |              1
+(16 rows)
+
+### Oasis - the answer to Rashid's question 1: every November invoice number, where it was delivered, ASP reference
+invoicely=# WITH up AS (SELECT id, row_number() OVER (ORDER BY created_at) AS n FROM imports WHERE seller_id=2 AND filename='oasis-builders-nov-2026.xlsx' AND id IN ('5ec45bb9-ab24-4215-a574-37b7b2659223','71dbc094-60d1-4004-83d7-791b7c63e422','94f1c2dd-c0bf-4488-9a9d-8d84f7735458')) SELECT v.invoice_number, v.buyer_name, v.total_incl_vat, 'upload #'||up.n AS delivered_by, v.asp_message_id AS asp_reference, to_char(v.updated_at,'HH24:MI:SS') AS accepted_at FROM invoices v JOIN up ON up.id=v.import_id WHERE v.status='Accepted' ORDER BY v.invoice_number;
+ invoice_number |              buyer_name               | total_incl_vat | delivered_by |            asp_reference             | accepted_at 
+----------------+---------------------------------------+----------------+--------------+--------------------------------------+-------------
+ OBS-2611-001   | Crescent Contracting LLC              |      469807.80 | upload #1    | dcea9667-8d73-40fb-9cdc-e2fd96aa5975 | 04:37:46
+ OBS-2611-002   | Northstar Engineering Consultants LLC |      506761.50 | upload #1    | 51023d19-32e4-40c6-8257-5f3a74f7b90f | 04:37:46
+ OBS-2611-003   | Coral Reef Resorts LLC                |      383475.75 | upload #1    | 2a144e97-bbbd-4736-af70-12f27f0fd61a | 04:37:46
+ OBS-2611-004   | Bluewater Facilities Management LLC   |      466130.70 | upload #3    | b9f62e19-b20a-408d-b427-3e43dd0d95c2 | 04:39:35
+ OBS-2611-005   | Crescent Contracting LLC              |      586164.60 | upload #3    | 0a8aa41d-e161-40d1-9c1c-937b26ce6a1c | 04:39:35
+ OBS-2611-006   | Gulf Horizon Transport LLC            |      427919.10 | upload #3    | 99fce943-37cc-484f-9841-4bfdd499487f | 04:39:35
+ OBS-2611-007   | Northstar Engineering Consultants LLC |      356633.55 | upload #3    | 75cc3085-ba2a-4e9c-bebd-3eede79eaa3c | 04:39:35
+ OBS-2611-008   | Coral Reef Resorts LLC                |      615742.05 | upload #3    | 9c2a2af0-b87c-4227-9f75-15f99bb3815e | 04:39:35
+(8 rows)
+
+### Cross-check on the ASP side: documents the ASP holds for Oasis (sender 0235:1003182746), OBS-2611-00x only
+accepted documents per number: {'OBS-2611-001': 1, 'OBS-2611-002': 1, 'OBS-2611-003': 1, 'OBS-2611-004': 1, 'OBS-2611-005': 1, 'OBS-2611-006': 1, 'OBS-2611-007': 1, 'OBS-2611-008': 1}
+any number accepted twice? False

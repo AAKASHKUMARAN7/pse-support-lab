@@ -1,0 +1,28 @@
+### Incident 2 workaround test at 05:02:39Z: 'Retry stuck invoices' (POST /v1/imports/{id}/retry) on every import that has Validated/Failed invoices
+retry import 38aaa151-1c29-4492-afb0-20701b0cbc13 -> {"requeued":5}
+retry import 6c47ab0e-24da-46e2-8d63-11daad6600a6 -> {"requeued":4}
+retry import d18f08a2-9239-4669-a99f-22d6a318cc70 -> {"requeued":2}
+retry import d49ca28a-a5cc-42be-b686-7b03b37cabb9 -> {"requeued":2}
+### 12 s later: what happened to those invoices
+invoicely=# SELECT s.name, v.status, count(*) FROM invoices v JOIN sellers s ON s.id=v.seller_id WHERE v.import_id IN (SELECT DISTINCT import_id FROM invoice_events e JOIN invoices v2 ON v2.id=e.invoice_id WHERE e.status='Validated') AND v.import_id IN ('38aaa151-1c29-4492-afb0-20701b0cbc13','6c47ab0e-24da-46e2-8d63-11daad6600a6','d18f08a2-9239-4669-a99f-22d6a318cc70','d49ca28a-a5cc-42be-b686-7b03b37cabb9') GROUP BY 1,2 ORDER BY 1,2;
+            name            |  status  | count 
+----------------------------+----------+-------
+ Desert Rose Trading LLC    | Accepted |    12
+ Marina Bay Hospitality LLC | Accepted |     2
+ Marina Bay Hospitality LLC | Parsed   |     4
+ Zayed Port Logistics LLC   | Accepted |     4
+ Zayed Port Logistics LLC   | Parsed   |     2
+(5 rows)
+
+### Parsed invoices cannot be retried (example)
+POST /v1/invoices/c1d64ed4-14c1-46d6-be81-9b3bd70a1926/retry -> {"error":"only invoices in status Validated or Failed can be retried (current status: Parsed)"}
+ HTTP 409
+
+### Re-upload an invoice whose earlier copy is stuck in Parsed (import killed mid-way): DRT-1116-H68T-061-01
+HTTP 201
+invoicely=# SELECT invoice_number, status, errors->0->>'rule' AS rule, errors->0->>'message' AS message FROM invoices WHERE import_id='2a925156-e184-4435-b778-67dc71d557e0';
+    invoice_number    |  status  |   rule   |                                           message                                           
+----------------------+----------+----------+---------------------------------------------------------------------------------------------
+ DRT-1116-H68T-061-01 | Rejected | AE-BR-09 | Document number 'DRT-1116-H68T-061-01' already exists for this seller with status 'Parsed'.
+(1 row)
+

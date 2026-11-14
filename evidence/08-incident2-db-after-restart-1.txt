@@ -1,0 +1,17 @@
+### After the 1st restart (04:44:40Z): invoices left waiting, and imports left half-done
+invoicely=# SELECT status, count(*), to_char(min(updated_at),'HH24:MI:SS') AS oldest_change, to_char(max(updated_at),'HH24:MI:SS') AS newest_change FROM invoices WHERE created_at > now()-interval '2 hours' AND status IN ('Parsed','Validated','Submitted','Failed') GROUP BY status ORDER BY 1;
+  status   | count | oldest_change | newest_change 
+-----------+-------+---------------+---------------
+ Parsed    |    12 | 04:43:45      | 04:50:15
+ Submitted |    56 | 04:30:37      | 04:39:18
+ Validated |    11 | 04:43:46      | 04:50:17
+(3 rows)
+
+invoicely=# SELECT i.id, s.name, i.filename, i.status, to_char(i.created_at,'HH24:MI:SS') AS created, (SELECT jsonb_object_agg(status,n) FROM (SELECT status,count(*) n FROM invoices v WHERE v.import_id=i.id GROUP BY status) c) AS invoices FROM imports i JOIN sellers s ON s.id=i.seller_id WHERE i.status IN ('Processing','Uploaded') ORDER BY i.created_at;
+                  id                  |            name            |       filename       |   status   | created  |           invoices            
+--------------------------------------+----------------------------+----------------------+------------+----------+-------------------------------
+ 6c47ab0e-24da-46e2-8d63-11daad6600a6 | Zayed Port Logistics LLC   | zpl-morning-60.xlsx  | Processing | 04:43:44 | {"Parsed": 2, "Validated": 4}
+ f25dc3ca-ccd9-4d82-8c5a-140d957061e3 | Desert Rose Trading LLC    | drt-morning-61.xlsx  | Processing | 04:43:46 | {"Parsed": 6}
+ d49ca28a-a5cc-42be-b686-7b03b37cabb9 | Marina Bay Hospitality LLC | mbh-morning-158.xlsx | Processing | 04:50:13 | {"Parsed": 4, "Validated": 2}
+(3 rows)
+

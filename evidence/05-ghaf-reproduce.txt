@@ -1,0 +1,44 @@
+### Incident 5 - reproduce: upload Ghaf Tree Cafe's original file (seller 6) at 04:26:55Z
+HTTP 201 in 3.294858s
+import fe99ee33-6e74-43cd-9e19-4a16591670fa status Completed counts {'Accepted': 0, 'Failed': 0, 'Parsed': 0, 'Rejected': 4, 'Submitted': 0, 'Validated': 0}
+invoicely=# SELECT invoice_number, status, rejected_by, jsonb_array_length(errors) AS n_errors, errors->0->>'rule' AS rule, errors->0->>'message' AS first_error FROM invoices WHERE import_id='fe99ee33-6e74-43cd-9e19-4a16591670fa' ORDER BY invoice_number;
+ invoice_number |  status  | rejected_by | n_errors |   rule   |                                  first_error                                  
+----------------+----------+-------------+----------+----------+-------------------------------------------------------------------------------
+ GTC-118        | Rejected | portal      |        4 | AE-BR-04 | [Invoice issue date*] must be a date in YYYY-MM-DD format (got '13/11/2026').
+ GTC-119        | Rejected | portal      |        4 | AE-BR-04 | [Invoice issue date*] must be a date in YYYY-MM-DD format (got '13/11/2026').
+ GTC-120        | Rejected | portal      |        6 | AE-BR-04 | [Invoice issue date*] must be a date in YYYY-MM-DD format (got '14/11/2026').
+ GTC-121        | Rejected | portal      |        2 | AE-BR-04 | [Invoice issue date*] must be a date in YYYY-MM-DD format (got '15/11/2026').
+(4 rows)
+
+invoicely=# SELECT DISTINCT e->>'rule' AS rule, e->>'field' AS field FROM invoices, jsonb_array_elements(errors) e WHERE import_id='fe99ee33-6e74-43cd-9e19-4a16591670fa';
+   rule   |        field        
+----------+---------------------
+ AE-BR-04 | Payment due date*
+ AE-BR-04 | Invoice issue date*
+(2 rows)
+
+
+### Fix: upload corrected copy evidence/files/ghaf-cafe-nov-2026-FIXED.xlsx (dates converted to YYYY-MM-DD) at 04:27:37Z
+HTTP 201 in 3.346046s
+import 6e451356-1742-415c-98ef-afbf1ca63e78 status Completed
+invoicely=# SELECT invoice_number, issue_date, status, asp_message_id, total_incl_vat FROM invoices WHERE import_id='6e451356-1742-415c-98ef-afbf1ca63e78' ORDER BY invoice_number;
+ invoice_number | issue_date |  status  |            asp_message_id            | total_incl_vat 
+----------------+------------+----------+--------------------------------------+----------------
+ GTC-118        | 2026-11-13 | Accepted | efeb2536-5dbe-46eb-96d5-c589dcf05460 |        2142.00
+ GTC-119        | 2026-11-13 | Accepted | 3e374b94-be3b-4a00-808d-cb250ffaa625 |        1029.00
+ GTC-120        | 2026-11-14 | Accepted | 38d5f6c8-1afa-4fb2-bd1c-b8865f824beb |        1165.50
+ GTC-121        | 2026-11-15 | Accepted | 9fd3b4e8-91fc-496a-bed1-e83567fcd1dc |        2205.00
+(4 rows)
+
+
+### Extra check: real Excel date cells shown as dd/mm/yyyy (what Text to Columns > DMY gives) - invoice numbers prefixed TEST-
+HTTP 201 in 5.767878s
+invoicely=# SELECT invoice_number, issue_date, status, errors->0->>'message' AS error FROM invoices WHERE import_id='b2eb5222-4812-4eaa-a04b-565aaf231f51' ORDER BY 1;
+ invoice_number | issue_date |  status  | error 
+----------------+------------+----------+-------
+ TEST-GTC-118   | 2026-11-13 | Accepted | 
+ TEST-GTC-119   | 2026-11-13 | Accepted | 
+ TEST-GTC-120   | 2026-11-14 | Accepted | 
+ TEST-GTC-121   | 2026-11-15 | Accepted | 
+(4 rows)
+

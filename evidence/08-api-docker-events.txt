@@ -1,0 +1,7 @@
+1794631432 oom invoicely-lite-api-1 exitCode=
+1794631439 die invoicely-lite-api-1 exitCode=137
+1794631471 start invoicely-lite-api-1 exitCode=
+1794631829 oom invoicely-lite-api-1 exitCode=
+1794631830 oom invoicely-lite-api-1 exitCode=
+1794631839 die invoicely-lite-api-1 exitCode=137
+1794631852 start invoicely-lite-api-1 exitCode=

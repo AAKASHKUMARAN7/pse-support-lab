@@ -1,0 +1,122 @@
+### make load equivalent: docker compose --profile tools run --rm --build --no-deps tools loadgen load   (started 2026-11-14T04:26:42Z)
+ Image invoicely-lite-tools Building 
+#1 [internal] load local bake definitions
+#1 reading from stdin 543B 0.0s done
+#1 DONE 0.0s
+
+#2 [internal] load build definition from Dockerfile
+#2 transferring dockerfile:
+#2 transferring dockerfile: 349B 1.6s done
+#2 DONE 2.1s
+
+#3 [internal] load metadata for docker.io/library/golang:1.27.4-alpine3.24
+#3 ...
+
+#4 [internal] load metadata for docker.io/library/alpine:3.24.4
+#4 DONE 11.5s
+
+#3 [internal] load metadata for docker.io/library/golang:1.27.4-alpine3.24
+#3 DONE 12.2s
+
+#5 [internal] load .dockerignore
+#5 transferring context:
+#5 transferring context: 2B 1.6s done
+#5 DONE 5.5s
+
+#6 [internal] load build context
+#6 DONE 0.0s
+
+#7 [build 1/6] FROM docker.io/library/golang:1.27.4-alpine3.24@sha256:0a5f7fe796599ff487605987432e7619ae45beeb2fba4c2ce0b907879932aebf
+#7 resolve docker.io/library/golang:1.27.4-alpine3.24@sha256:0a5f7fe796599ff487605987432e7619ae45beeb2fba4c2ce0b907879932aebf
+#7 resolve docker.io/library/golang:1.27.4-alpine3.24@sha256:0a5f7fe796599ff487605987432e7619ae45beeb2fba4c2ce0b907879932aebf 0.7s done
+#7 DONE 0.9s
+
+#8 [stage-1 1/3] FROM docker.io/library/alpine:3.24.4@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf
+#8 resolve docker.io/library/alpine:3.24.4@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf
+#8 resolve docker.io/library/alpine:3.24.4@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf 0.8s done
+#8 CACHED
+
+#6 [internal] load build context
+#6 transferring context: 30.37kB 0.1s done
+#6 DONE 0.5s
+
+#9 [stage-1 2/3] RUN apk add --no-cache ca-certificates
+#9 ...
+
+#10 [build 2/6] WORKDIR /src
+#10 CACHED
+
+#11 [build 3/6] COPY go.mod go.sum ./
+#11 DONE 0.4s
+
+#9 [stage-1 2/3] RUN apk add --no-cache ca-certificates
+#9 ...
+
+#12 [build 4/6] RUN go mod download
+#12 ...
+
+#9 [stage-1 2/3] RUN apk add --no-cache ca-certificates
+#9 30.76 (1/1) Installing ca-certificates (20261020-r0)
+#9 35.21 Executing busybox-1.37.0-r31.trigger
+#9 37.32 Executing ca-certificates-20261020-r0.trigger
+#9 39.10 OK: 8419 KiB in 17 packages
+#9 DONE 41.5s
+
+#12 [build 4/6] RUN go mod download
+#12 DONE 59.1s
+
+#13 [build 5/6] COPY . .
+#13 DONE 0.8s
+
+#14 [build 6/6] RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/ ./cmd/...
+#14 DONE 597.7s
+
+#15 [stage-1 3/3] COPY --from=build /out/ /usr/local/bin/
+#15 DONE 0.7s
+
+#16 exporting to image
+#16 exporting layers
+#16 exporting layers 8.1s done
+#16 exporting manifest sha256:705d81dc2eab25e7ec686f4a800ea89f1d68119914bb6d3f9fb907d675609977
+#16 exporting manifest sha256:705d81dc2eab25e7ec686f4a800ea89f1d68119914bb6d3f9fb907d675609977 0.3s done
+#16 exporting config sha256:2fd0b975b54f8f2783a83fec301771456b86ce26db71f2c3a05dd5669ac16ac0
+#16 exporting config sha256:2fd0b975b54f8f2783a83fec301771456b86ce26db71f2c3a05dd5669ac16ac0 0.4s done
+#16 exporting attestation manifest sha256:0c79530d06fd2c48e10da0132a4d84507d610b024ba3c276bfad5898a22a755c
+#16 exporting attestation manifest sha256:0c79530d06fd2c48e10da0132a4d84507d610b024ba3c276bfad5898a22a755c 0.3s done
+#16 exporting manifest list sha256:ed721060a2bce48b6ae2dd9985605e81a74d9c2bb2f71a4787e6c050173382c6
+#16 exporting manifest list sha256:ed721060a2bce48b6ae2dd9985605e81a74d9c2bb2f71a4787e6c050173382c6 0.1s done
+#16 naming to docker.io/library/invoicely-lite-tools:latest 0.0s done
+#16 unpacking to docker.io/library/invoicely-lite-tools:latest
+#16 unpacking to docker.io/library/invoicely-lite-tools:latest 3.2s done
+#16 DONE 13.0s
+
+#17 resolving provenance for metadata file
+#17 DONE 0.3s
+ Image invoicely-lite-tools Built 
+ Container invoicely-lite-tools-run-91f66e1a79a3 Creating 
+ Container invoicely-lite-tools-run-91f66e1a79a3 Created 
+[04:38:53] replaying customer traffic against http://api:8080 (run H68T)
+[04:38:57] al-noor      uploading al-noor-fuel-nov-2026.xlsx (93 KB)
+[04:38:57] sahara       uploading sahara-medical-batch-1116.xlsx (99 KB)
+[04:38:57] ghaf         uploading ghaf-cafe-nov-2026.xlsx (92 KB)
+[04:39:01] oasis        uploading oasis-builders-nov-2026.xlsx (169 KB)
+[04:39:03] ghaf         HTTP 201 in 5.4s  import=fa1bba3e-d973-4fba-b7d1-d7114d9f0991  status=Completed  invoices=4
+[04:39:04] al-noor      HTTP 201 in 7.2s  import=ecc0bb0f-aa62-42fe-9328-3d55770d6fa6  status=Completed  invoices=6
+[04:39:11] ghaf         invoices: Rejected 4
+[04:39:12] al-noor      invoices: Accepted 3, Rejected 3
+[04:39:16] sahara       HTTP 201 in 19.6s  import=0bc6c5cc-749a-436a-8738-9d0d729efbb9  status=Completed  invoices=40
+[04:39:25] sahara       invoices: Submitted 30, Accepted 10
+[04:41:16] oasis        HTTP 201 in 135.3s  import=641b36c9-0f4b-4965-97a5-4dd4cc3979f0  status=Completed  invoices=8
+[04:41:24] oasis        invoices: Accepted 8
+[04:41:24] peak       240 uploads from 4 customers, 8 at a time
+[04:42:26] peak       25/240 uploads done (25 ok, 0 failed)
+[04:43:22] peak       50/240 uploads done (50 ok, 0 failed)
+[04:47:09] peak       75/240 uploads done (65 ok, 10 failed)
+[04:48:24] peak       100/240 uploads done (90 ok, 10 failed)
+[04:49:21] peak       125/240 uploads done (115 ok, 10 failed)
+[04:50:02] peak       150/240 uploads done (140 ok, 10 failed)
+[04:51:37] peak       175/240 uploads done (154 ok, 21 failed)
+[05:01:01] peak       200/240 uploads done (179 ok, 21 failed)
+
+## replay stopped manually at 2026-11-14T05:01:16Z after 175/240 peak uploads: laptop (6 GB RAM total) was swapping; evidence already captured
+### finished 2026-11-14T05:01:24Z exit=0

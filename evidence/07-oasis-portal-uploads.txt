@@ -1,0 +1,12 @@
+### Oasis upload #1 via the PORTAL proxy http://localhost:3000/api/imports  start 04:35:06Z
+{"error":"Gateway Timeout"}
+  -> HTTP 504 after 63.668754s (end 04:35:07Z... see time)
+  finished at 04:36:11Z
+### Oasis upload #2 via the PORTAL proxy http://localhost:3000/api/imports  start 04:36:11Z
+{"error":"Gateway Timeout"}
+  -> HTTP 504 after 63.751503s (end 04:36:12Z... see time)
+  finished at 04:37:16Z
+### Oasis upload #3 via the PORTAL proxy http://localhost:3000/api/imports  start 04:37:17Z
+{"error":"Gateway Timeout"}
+  -> HTTP 504 after 60.841963s (end 04:37:17Z... see time)
+  finished at 04:38:18Z

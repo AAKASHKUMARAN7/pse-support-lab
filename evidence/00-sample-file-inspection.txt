@@ -1,0 +1,38 @@
+=== Ghaf Tree Cafe: date cells ===
+row 2 GTC-118        Invoice issue date*    value='13/11/2026'   python_type=str       cell_type=s format=General
+row 2 GTC-118        Payment due date*      value='13/12/2026'   python_type=str       cell_type=s format=General
+row 3 GTC-118        Invoice issue date*    value='13/11/2026'   python_type=str       cell_type=s format=General
+row 3 GTC-118        Payment due date*      value='13/12/2026'   python_type=str       cell_type=s format=General
+row 4 GTC-119        Invoice issue date*    value='13/11/2026'   python_type=str       cell_type=s format=General
+row 4 GTC-119        Payment due date*      value='13/12/2026'   python_type=str       cell_type=s format=General
+row 5 GTC-119        Invoice issue date*    value='13/11/2026'   python_type=str       cell_type=s format=General
+row 5 GTC-119        Payment due date*      value='13/12/2026'   python_type=str       cell_type=s format=General
+row 6 GTC-120        Invoice issue date*    value='14/11/2026'   python_type=str       cell_type=s format=General
+row 6 GTC-120        Payment due date*      value='14/12/2026'   python_type=str       cell_type=s format=General
+row 7 GTC-120        Invoice issue date*    value='14/11/2026'   python_type=str       cell_type=s format=General
+row 7 GTC-120        Payment due date*      value='14/12/2026'   python_type=str       cell_type=s format=General
+row 8 GTC-120        Invoice issue date*    value='14/11/2026'   python_type=str       cell_type=s format=General
+row 8 GTC-120        Payment due date*      value='14/12/2026'   python_type=str       cell_type=s format=General
+row 9 GTC-121        Invoice issue date*    value='15/11/2026'   python_type=str       cell_type=s format=General
+row 9 GTC-121        Payment due date*      value='15/12/2026'   python_type=str       cell_type=s format=General
+
+=== Al Noor Fuel: per-invoice totals, portal method vs correct method ===
+  ANF-2611-0041 row 2: qty=4850 price=2.835 qty*price=13749.750 line_net=13749.75 diff=+0.000 vat=687.49
+ANF-2611-0041: excl=13749.75 vat=687.49 excl+vat=14437.24 | portal TaxInclusive=round2(sum qty*price*1.05)=14437.24 -> OK
+  ANF-2611-0042 row 3: qty=3125 price=2.917 qty*price=9115.625 line_net=9115.63 diff=+0.005 vat=455.78
+  ANF-2611-0042 row 4: qty=1837 price=2.585 qty*price=4748.645 line_net=4748.65 diff=+0.005 vat=237.43
+  ANF-2611-0042 row 5: qty=24 price=18.45 qty*price=442.80 line_net=442.8 diff=+0.00 vat=22.14
+ANF-2611-0042: excl=14307.08 vat=715.35 excl+vat=15022.43 | portal TaxInclusive=round2(sum qty*price*1.05)=15022.42 -> BR-CO-15 MISMATCH
+  ANF-2611-0043 row 6: qty=6200 price=2.835 qty*price=17577.000 line_net=17577 diff=+0.000 vat=878.85
+  ANF-2611-0043 row 7: qty=60 price=18.45 qty*price=1107.00 line_net=1107 diff=+0.00 vat=55.35
+ANF-2611-0043: excl=18684.00 vat=934.20 excl+vat=19618.20 | portal TaxInclusive=round2(sum qty*price*1.05)=19618.20 -> OK
+  ANF-2611-0044 row 8: qty=2275 price=2.917 qty*price=6636.175 line_net=6636.18 diff=+0.005 vat=331.81
+  ANF-2611-0044 row 9: qty=1365 price=2.585 qty*price=3528.525 line_net=3528.53 diff=+0.005 vat=176.43
+  ANF-2611-0044 row 10: qty=415 price=1.275 qty*price=529.125 line_net=529.13 diff=+0.005 vat=26.46
+  ANF-2611-0044 row 11: qty=12 price=46.75 qty*price=561.00 line_net=561 diff=+0.00 vat=28.05
+ANF-2611-0044: excl=11254.84 vat=562.75 excl+vat=11817.59 | portal TaxInclusive=round2(sum qty*price*1.05)=11817.57 -> BR-CO-15 MISMATCH
+  ANF-2611-0045 row 12: qty=3980 price=2.835 qty*price=11283.300 line_net=11283.3 diff=+0.000 vat=564.17
+ANF-2611-0045: excl=11283.30 vat=564.17 excl+vat=11847.47 | portal TaxInclusive=round2(sum qty*price*1.05)=11847.47 -> OK
+  ANF-2611-0046 row 13: qty=1512 price=2.917 qty*price=4410.504 line_net=4410.5 diff=-0.004 vat=220.53
+  ANF-2611-0046 row 14: qty=732 price=1.275 qty*price=933.300 line_net=933.3 diff=+0.000 vat=46.67
+ANF-2611-0046: excl=5343.80 vat=267.20 excl+vat=5611.00 | portal TaxInclusive=round2(sum qty*price*1.05)=5610.99 -> BR-CO-15 MISMATCH
