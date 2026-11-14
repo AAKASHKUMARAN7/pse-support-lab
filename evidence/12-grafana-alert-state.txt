@@ -9,3 +9,8 @@ Invoicely API 5xx responses | inactive | [('Normal', 'activeAt 2026-11-14T06:37:
 docker: api RestartCount=2, last real start 2026-11-14T04:50:41.871996996Z
 -> 'API restarted' is firing although the API has not restarted since 04:50:41Z: false positive (process_start_time_seconds drift).
 -> '5xx responses' fired ~06:33-06:37Z (now Normal again): real 503 (/healthz) and 500 (/v1/sellers) responses while my laptop was out of memory (3 failed api scrapes in that window) - environment, not the scenario.
+
+### Re-checked at 2026-11-14T06:46:04Z (screenshot g7-alert-rules-firing.png)
+Invoicely API restarted | firing since 06:22:10Z | docker RestartCount=2, last real start 04:50:41Z -> still a false positive
+Invoicely API 5xx responses | firing since 06:44:40Z | 5xx series: /healthz 503 count 4 (was 3), /v1/sellers 500 count 2; 5 failed api scrapes in last 15m; no 5xx on customer routes in the api log (last 20m)
+-> the 5xx alert is counting Docker's /healthz probe failing (DB ping timing out while my laptop was short of RAM), not customer traffic. /healthz is not access-logged (httpapi.go observe() skips it), so only the metric shows it.

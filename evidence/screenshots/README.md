@@ -14,8 +14,9 @@ Taken on 14 Nov 2026 from the running lab, after the reproduction run (04:22–0
 | [g4-container-restarts.png](g4-container-restarts.png) | #2 | **Container restarts**: only the api container restarts (1, then 2 in the 10-minute window). |
 | [g5-asp-responses.png](g5-asp-responses.png) | #4, #3 | **ASP responses by HTTP status**: **HTTP 429** (blue, Sahara throttled) and **HTTP 422** (yellow, Al Noor BR-CO-15) at ~10:09 IST. My *first* Sahara upload (~10:00 IST) also got 26 × 429 but shows no blue bar: most likely the 429 counter series was created at that moment and `increase()` ignores a series' first sample. The first burst of throttling is invisible on the dashboard. |
 | [g6-import-processing-time.png](g6-import-processing-time.png) | #1 | **Import processing time p50/p95**: Oasis-period p95 far above the 60 s portal timeout. Two caveats: (1) the histogram buckets jump from 120 s to 300 s, so the ~4.6 min shown is Grafana's estimate inside that bucket; the exact times (138–157 s) are in the logs ([07-oasis-timing.txt](../07-oasis-timing.txt)). (2) The ~9.5 min spike at 10:30 IST is when my laptop ran out of memory and Docker froze. That's environment, not product. |
+| [g7-alert-rules-firing.png](g7-alert-rules-firing.png) | #2 | Alerting → Alert rules, filter Firing (taken 06:46 UTC): **"Invoicely API restarted" is firing although the API has not restarted since 04:50 UTC** (Docker `RestartCount=2`). That's the false positive caused by `process_start_time_seconds` drifting. "Invoicely API 5xx responses" is also firing, but only because Docker's `/healthz` probe got a 503 while my laptop was short of RAM (no 5xx on customer routes). The 5xx alert mixes health-probe failures with customer traffic. Details: [../12-grafana-alert-state.txt](../12-grafana-alert-state.txt). |
 
-The alert state ("Invoicely API restarted" firing although the API has not restarted since 04:50 UTC) is recorded as text in [../12-grafana-alert-state.txt](../12-grafana-alert-state.txt).
+
 
 ## Portal
 
